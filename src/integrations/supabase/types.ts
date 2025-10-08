@@ -14,7 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      device_data: {
+        Row: {
+          battery_level: number | null
+          collected_at: string | null
+          device_model: string | null
+          id: string
+          is_virtual: boolean | null
+          language: string | null
+          location_coords: string | null
+          manufacturer: string | null
+          os_version: string | null
+          platform: string | null
+          user_id: string | null
+        }
+        Insert: {
+          battery_level?: number | null
+          collected_at?: string | null
+          device_model?: string | null
+          id?: string
+          is_virtual?: boolean | null
+          language?: string | null
+          location_coords?: string | null
+          manufacturer?: string | null
+          os_version?: string | null
+          platform?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          battery_level?: number | null
+          collected_at?: string | null
+          device_model?: string | null
+          id?: string
+          is_virtual?: boolean | null
+          language?: string | null
+          location_coords?: string | null
+          manufacturer?: string | null
+          os_version?: string | null
+          platform?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_data_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
