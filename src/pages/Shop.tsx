@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // Placeholder products - will integrate with Shopify
 const PLACEHOLDER_PRODUCTS = [
@@ -32,9 +34,28 @@ const PLACEHOLDER_PRODUCTS = [
 
 const Shop = () => {
   const [cart, setCart] = useState<string[]>([]);
+  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
-  const addToCart = (id: string) => {
+  const addToCart = (id: string, name: string) => {
     setCart([...cart, id]);
+    
+    // Show animation state
+    setAddedItems(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      setAddedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }, 1500);
+
+    // Show toast notification
+    toast({
+      title: "Added to cart",
+      description: `${name} has been added to your cart.`,
+      duration: 2000,
+    });
   };
 
   return (
@@ -61,10 +82,21 @@ const Shop = () => {
                   <p className="text-muted-foreground text-sm">${product.price}</p>
                 </div>
                 <Button 
-                  onClick={() => addToCart(product.id)}
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold uppercase"
+                  onClick={() => addToCart(product.id, product.name)}
+                  className={`w-full font-bold uppercase transition-all ${
+                    addedItems.has(product.id)
+                      ? 'bg-green-600 hover:bg-green-600'
+                      : 'bg-accent hover:bg-accent/90 text-accent-foreground'
+                  }`}
                 >
-                  add to cart
+                  {addedItems.has(product.id) ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2 animate-scale-in" />
+                      Added!
+                    </>
+                  ) : (
+                    'add to cart'
+                  )}
                 </Button>
               </div>
             </Card>
