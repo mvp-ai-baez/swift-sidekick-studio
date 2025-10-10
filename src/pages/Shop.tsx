@@ -1,51 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, ShoppingCart, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-// Placeholder products - will integrate with Shopify
-const PLACEHOLDER_PRODUCTS = [
-  {
-    id: '1',
-    name: 'CLASSIC SNAPBACK',
-    price: 45,
-    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&h=800&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'TRUCKER HAT',
-    price: 40,
-    image: 'https://images.unsplash.com/photo-1575428652377-a2d80e2277fc?w=800&h=800&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'DAD HAT',
-    price: 38,
-    image: 'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=800&h=800&fit=crop'
-  },
-  {
-    id: '4',
-    name: 'BEANIE',
-    price: 35,
-    image: 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=800&h=800&fit=crop'
-  }
-];
+interface ShopifyProduct {
+  id: string;
+  variantId: string;
+  name: string;
+  price: number;
+  currencyCode: string;
+  image: string;
+  description: string;
+  handle: string;
+  availableForSale: boolean;
+}
+
+interface CartItem {
+  variantId: string;
+  quantity: number;
+}
 
 const Shop = () => {
-  const [cart, setCart] = useState<string[]>([]);
+  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+  const [checkingOut, setCheckingOut] = useState(false);
   const { toast } = useToast();
 
-  const addToCart = (id: string, name: string) => {
-    setCart([...cart, id]);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('fetch-shopify-products');
+      
+      if (error) throw error;
+      
+      setProducts(data.products || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Error loading products",
+        description: "Failed to load products from store. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToCart = (product: ShopifyProduct) => {
+    setCart(prev => {
+      const newCart = new Map(prev);
+      const existing = newCart.get(product.id);
+      
+      if (existing) {
+        newCart.set(product.id, { ...existing, quantity: existing.quantity + 1 });
+      } else {
+        newCart.set(product.id, { variantId: product.variantId, quantity: 1 });
+      }
+      
+      return newCart;
+    });
     
     // Show animation state
-    setAddedItems(prev => new Set(prev).add(id));
+    setAddedItems(prev => new Set(prev).add(product.id));
     setTimeout(() => {
       setAddedItems(prev => {
         const newSet = new Set(prev);
-        newSet.delete(id);
+        newSet.delete(product.id);
         return newSet;
       });
     }, 1500);
@@ -53,55 +81,130 @@ const Shop = () => {
     // Show toast notification
     toast({
       title: "Added to cart",
-      description: `${name} has been added to your cart.`,
+      description: `${product.name} has been added to your cart.`,
       duration: 2000,
     });
   };
+
+  const handleCheckout = async () => {
+    if (cart.size === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Add some products to your cart first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCheckingOut(true);
+      const cartItems = Array.from(cart.values());
+      
+      const { data, error } = await supabase.functions.invoke('create-shopify-checkout', {
+        body: { cartItems },
+      });
+      
+      if (error) throw error;
+      
+      // Redirect to Shopify checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast({
+        title: "Checkout failed",
+        description: "Failed to create checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  const getTotalItems = () => {
+    return Array.from(cart.values()).reduce((sum, item) => sum + item.quantity, 0);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-12">
           <h1 className="text-2xl font-bold uppercase tracking-tight">shop</h1>
-          <div className="hype-box">
-            cart ({cart.length})
+          <div className="flex gap-4 items-center">
+            <Button
+              onClick={handleCheckout}
+              disabled={cart.size === 0 || checkingOut}
+              className="font-bold uppercase"
+            >
+              {checkingOut ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Checkout ({getTotalItems()})
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {PLACEHOLDER_PRODUCTS.map((product) => (
-            <Card key={product.id} className="bg-card border-border overflow-hidden">
-              <img 
-                src={product.image} 
-                alt={product.name}
-                className="w-full aspect-square object-cover"
-              />
-              <div className="p-4 space-y-3">
-                <div>
-                  <h3 className="font-bold text-sm uppercase">{product.name}</h3>
-                  <p className="text-muted-foreground text-sm">${product.price}</p>
+        {products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No products available at the moment.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {products.map((product) => (
+              <Card key={product.id} className="bg-card border-border overflow-hidden">
+                <img 
+                  src={product.image} 
+                  alt={product.name}
+                  className="w-full aspect-square object-cover"
+                />
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-bold text-sm uppercase">{product.name}</h3>
+                    <p className="text-muted-foreground text-sm">
+                      {product.currencyCode} ${product.price.toFixed(2)}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => addToCart(product)}
+                    disabled={!product.availableForSale}
+                    className={`w-full font-bold uppercase transition-all ${
+                      addedItems.has(product.id)
+                        ? 'bg-green-600 hover:bg-green-600'
+                        : ''
+                    }`}
+                  >
+                    {!product.availableForSale ? (
+                      'Sold Out'
+                    ) : addedItems.has(product.id) ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2 animate-scale-in" />
+                        Added!
+                      </>
+                    ) : (
+                      'add to cart'
+                    )}
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => addToCart(product.id, product.name)}
-                  className={`w-full font-bold uppercase transition-all ${
-                    addedItems.has(product.id)
-                      ? 'bg-green-600 hover:bg-green-600'
-                      : 'bg-accent hover:bg-accent/90 text-accent-foreground'
-                  }`}
-                >
-                  {addedItems.has(product.id) ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2 animate-scale-in" />
-                      Added!
-                    </>
-                  ) : (
-                    'add to cart'
-                  )}
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
