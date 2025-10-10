@@ -18,22 +18,21 @@ serve(async (req) => {
     const { cartItems } = await req.json();
     console.log('Creating Shopify checkout for items:', cartItems);
 
-    // Create line items for Shopify checkout
-    const lineItems = cartItems.map((item: any) => ({
-      variantId: item.variantId,
+    // Prepare cart lines for Shopify Cart API
+    const lines = cartItems.map((item: any) => ({
+      merchandiseId: item.variantId,
       quantity: item.quantity || 1,
     }));
 
     // Shopify Storefront API GraphQL mutation
     const mutation = `
-      mutation checkoutCreate($input: CheckoutCreateInput!) {
-        checkoutCreate(input: $input) {
-          checkout {
+      mutation cartCreate($input: CartInput) {
+        cartCreate(input: $input) {
+          cart {
             id
-            webUrl
+            checkoutUrl
           }
-          checkoutUserErrors {
-            code
+          userErrors {
             field
             message
           }
@@ -43,7 +42,7 @@ serve(async (req) => {
 
     const variables = {
       input: {
-        lineItems,
+        lines,
       },
     };
 
@@ -75,18 +74,21 @@ serve(async (req) => {
     }
 
     // Check if data exists
-    if (!data.data || !data.data.checkoutCreate) {
+    if (!data.data || !data.data.cartCreate) {
       console.error('Unexpected response structure:', data);
       throw new Error('Invalid response from Shopify');
     }
     
-    if (data.data.checkoutCreate.checkoutUserErrors && data.data.checkoutCreate.checkoutUserErrors.length > 0) {
-      console.error('Checkout errors:', data.data.checkoutCreate.checkoutUserErrors);
-      throw new Error(data.data.checkoutCreate.checkoutUserErrors[0].message);
+    if (data.data.cartCreate.userErrors && data.data.cartCreate.userErrors.length > 0) {
+      console.error('Cart errors:', data.data.cartCreate.userErrors);
+      throw new Error(data.data.cartCreate.userErrors[0].message);
     }
 
-    const checkoutUrl = data.data.checkoutCreate.checkout.webUrl;
-    console.log('Successfully created checkout:', checkoutUrl);
+    const checkoutUrl = data.data.cartCreate.cart?.checkoutUrl;
+    if (!checkoutUrl) {
+      console.error('Missing checkoutUrl in response:', data);
+      throw new Error('Missing checkout URL from Shopify');
+    }
 
     return new Response(
       JSON.stringify({ checkoutUrl }),
