@@ -62,12 +62,25 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Shopify API error:', response.status, errorText);
-      throw new Error(`Shopify API returned ${response.status}`);
+      throw new Error(`Shopify API returned ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Shopify response:', JSON.stringify(data, null, 2));
     
-    if (data.data.checkoutCreate.checkoutUserErrors.length > 0) {
+    // Check for GraphQL errors
+    if (data.errors) {
+      console.error('GraphQL errors:', data.errors);
+      throw new Error(data.errors[0].message);
+    }
+
+    // Check if data exists
+    if (!data.data || !data.data.checkoutCreate) {
+      console.error('Unexpected response structure:', data);
+      throw new Error('Invalid response from Shopify');
+    }
+    
+    if (data.data.checkoutCreate.checkoutUserErrors && data.data.checkoutCreate.checkoutUserErrors.length > 0) {
       console.error('Checkout errors:', data.data.checkoutCreate.checkoutUserErrors);
       throw new Error(data.data.checkoutCreate.checkoutUserErrors[0].message);
     }
