@@ -84,11 +84,15 @@ serve(async (req) => {
       throw new Error(data.data.cartCreate.userErrors[0].message);
     }
 
-    const checkoutUrl = data.data.cartCreate.cart?.checkoutUrl;
+    let checkoutUrl = data.data.cartCreate.cart?.checkoutUrl;
     if (!checkoutUrl) {
       console.error('Missing checkoutUrl in response:', data);
       throw new Error('Missing checkout URL from Shopify');
     }
+    
+    // Replace custom domain with myshopify.com domain to ensure checkout works
+    checkoutUrl = checkoutUrl.replace('baezonline.com', SHOPIFY_STORE_DOMAIN);
+    console.log('Successfully created checkout:', checkoutUrl);
 
     return new Response(
       JSON.stringify({ checkoutUrl }),
