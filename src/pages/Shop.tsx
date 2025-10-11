@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Check, ShoppingCart, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Browser } from '@capacitor/browser';
 
 interface ShopifyProduct {
   id: string;
@@ -106,18 +107,15 @@ const Shop = () => {
       
       if (error) throw error;
       
-      // Redirect to Shopify checkout (open in new tab/top to bypass iframe restrictions)
+      // Open checkout in native in-app browser (iOS: SFSafariViewController, Android: Custom Tabs)
       if (data.checkoutUrl) {
-        const url = data.checkoutUrl as string;
-        const newTab = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!newTab) {
-          // Fallback to top-level navigation
-          if (window.top) {
-            window.top.location.href = url;
-          } else {
-            window.location.href = url;
-          }
-        }
+        await Browser.open({ 
+          url: data.checkoutUrl as string,
+          presentationStyle: 'popover' // Opens as modal overlay on iOS
+        });
+        
+        // Clear cart after opening checkout
+        setCart(new Map());
       }
     } catch (error) {
       console.error('Error creating checkout:', error);
