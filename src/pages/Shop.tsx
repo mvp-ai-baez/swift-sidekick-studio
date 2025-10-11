@@ -106,9 +106,18 @@ const Shop = () => {
       
       if (error) throw error;
       
-      // Redirect to Shopify checkout
+      // Redirect to Shopify checkout (open in new tab/top to bypass iframe restrictions)
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        const url = data.checkoutUrl as string;
+        const newTab = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!newTab) {
+          // Fallback to top-level navigation
+          if (window.top) {
+            window.top.location.href = url;
+          } else {
+            window.location.href = url;
+          }
+        }
       }
     } catch (error) {
       console.error('Error creating checkout:', error);

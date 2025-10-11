@@ -90,8 +90,21 @@ serve(async (req) => {
       throw new Error('Missing checkout URL from Shopify');
     }
     
-    // Replace custom domain with myshopify.com domain to ensure checkout works
-    checkoutUrl = checkoutUrl.replace('baezonline.com', SHOPIFY_STORE_DOMAIN);
+    // Normalize to myshopify.com domain to ensure checkout works across any custom domain
+    try {
+      const urlObj = new URL(checkoutUrl);
+      if (urlObj.hostname !== SHOPIFY_STORE_DOMAIN) {
+        urlObj.hostname = SHOPIFY_STORE_DOMAIN;
+        urlObj.protocol = 'https:';
+        urlObj.port = '';
+      }
+      checkoutUrl = urlObj.toString();
+    } catch (_) {
+      // Fallback: replace host segment if parsing failed
+      const pathStart = checkoutUrl.indexOf('/', 8); // after protocol
+      const path = pathStart !== -1 ? checkoutUrl.substring(pathStart) : '/';
+      checkoutUrl = `https://${SHOPIFY_STORE_DOMAIN}${path}`;
+    }
     console.log('Successfully created checkout:', checkoutUrl);
 
     return new Response(
