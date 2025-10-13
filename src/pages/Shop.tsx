@@ -143,10 +143,14 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-2xl font-bold uppercase tracking-tight">shop</h1>
-          <div className="flex gap-4 items-center">
+      {/* Sticky header with safe area insets for iPhone notch */}
+      <div 
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b" 
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold uppercase tracking-tight">shop</h1>
             <Button
               onClick={handleCheckout}
               disabled={cart.size === 0 || checkingOut}
@@ -166,6 +170,10 @@ const Shop = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Products grid */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
         {products.length === 0 ? (
           <div className="text-center py-12">
