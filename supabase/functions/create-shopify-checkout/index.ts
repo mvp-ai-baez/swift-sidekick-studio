@@ -16,6 +16,45 @@ serve(async (req) => {
 
   try {
     const { cartItems } = await req.json();
+    
+    // Validate input - prevent abuse and malicious data
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return new Response(
+        JSON.stringify({ error: 'cartItems must be an array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (cartItems.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Cart is empty' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (cartItems.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Too many items in cart' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate each cart item
+    for (const item of cartItems) {
+      if (!item.variantId || typeof item.variantId !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid variant ID' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (item.quantity && (typeof item.quantity !== 'number' || item.quantity < 1 || item.quantity > 99)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid quantity' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
     console.log('Creating Shopify checkout for items:', cartItems);
 
     // Prepare cart lines for Shopify Cart API
