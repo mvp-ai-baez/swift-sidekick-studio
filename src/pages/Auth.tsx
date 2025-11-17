@@ -6,6 +6,50 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Lock } from 'lucide-react';
+import { z } from 'zod';
+
+// Input validation schemas
+const signUpSchema = z.object({
+  email: z.string().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[a-z]/, 'Password must contain a lowercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
+  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name too long'),
+  lastName: z.string().trim().min(1, 'Last name is required').max(50, 'Last name too long'),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+// Safe error message mapping
+const getSafeErrorMessage = (error: any): string => {
+  const message = error?.message?.toLowerCase() || '';
+  
+  if (message.includes('already registered') || message.includes('already exists')) {
+    return 'This email is already registered. Try logging in instead.';
+  }
+  if (message.includes('invalid login') || message.includes('invalid credentials')) {
+    return 'Invalid email or password.';
+  }
+  if (message.includes('email not confirmed')) {
+    return 'Please confirm your email address.';
+  }
+  if (message.includes('email')) {
+    return 'Please check your email address.';
+  }
+  if (message.includes('password')) {
+    return 'Please check your password.';
+  }
+  
+  // Log full error for debugging but return generic message
+  console.error('Auth error:', error);
+  return 'An error occurred. Please try again.';
+};
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,6 +68,19 @@ const Auth = () => {
 
     try {
       if (isLogin) {
+        // Validate login input
+        const validationResult = loginSchema.safeParse({ email, password });
+        if (!validationResult.success) {
+          const firstError = validationResult.error.errors[0];
+          toast({
+            title: "Validation Error",
+            description: firstError.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -37,6 +94,26 @@ const Auth = () => {
         });
         navigate('/');
       } else {
+        // Validate signup input
+        const validationResult = signUpSchema.safeParse({
+          email,
+          password,
+          firstName,
+          lastName,
+          phoneNumber,
+        });
+        
+        if (!validationResult.success) {
+          const firstError = validationResult.error.errors[0];
+          toast({
+            title: "Validation Error",
+            description: firstError.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -61,7 +138,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getSafeErrorMessage(error),
         variant: "destructive",
       });
     } finally {
