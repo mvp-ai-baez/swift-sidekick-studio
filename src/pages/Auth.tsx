@@ -46,8 +46,7 @@ const getSafeErrorMessage = (error: any): string => {
     return 'Please check your password.';
   }
   
-  // Log full error for debugging but return generic message
-  console.error('Auth error:', error);
+  // Return generic message without logging sensitive details
   return 'An error occurred. Please try again.';
 };
 
