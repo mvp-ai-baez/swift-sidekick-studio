@@ -15,6 +15,31 @@ interface Profile {
   phone_number: string;
 }
 
+// Safe error message mapper to prevent information leakage
+const getSafeErrorMessage = (error: any): string => {
+  const errorMessage = error?.message?.toLowerCase() || '';
+  
+  // Map internal database errors to safe user-friendly messages
+  if (errorMessage.includes('row-level security') || errorMessage.includes('rls')) {
+    return 'You do not have permission to perform this action.';
+  }
+  
+  if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
+    return 'This information is already in use.';
+  }
+  
+  if (errorMessage.includes('foreign key') || errorMessage.includes('violates')) {
+    return 'Invalid data provided.';
+  }
+  
+  if (errorMessage.includes('not found')) {
+    return 'Profile not found.';
+  }
+  
+  // Generic safe message for any other database/internal errors
+  return 'Unable to update profile. Please try again.';
+};
+
 const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +108,7 @@ const Profile = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getSafeErrorMessage(error),
         variant: "destructive",
       });
     }
