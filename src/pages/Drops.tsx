@@ -3,19 +3,14 @@ import { Bell, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import azBzCollection from '@/assets/az-bz-collection.jpg';
 
 const UPCOMING_DROPS = [
   {
     id: '1',
-    name: 'WINTER 2025 COLLECTION',
-    date: '2025-12-15T10:00:00',
-    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=800&h=400&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'EXCLUSIVE SNAPBACK DROP',
-    date: '2025-11-20T10:00:00',
-    image: 'https://images.unsplash.com/photo-1529958030586-3aae4ca485ff?w=800&h=400&fit=crop'
+    name: 'AZ x BZ Collection',
+    date: '2025-11-22',
+    image: azBzCollection
   }
 ];
 
@@ -47,9 +42,7 @@ const Drops = () => {
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     });
   };
 
@@ -86,13 +79,11 @@ const Drops = () => {
                 className="w-full aspect-video object-cover"
               />
               <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-lg uppercase mb-2">{drop.name}</h3>
-                    <p className="text-muted-foreground text-sm uppercase">
-                      {formatDate(drop.date)}
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center space-y-4">
+                  <h3 className="font-bold text-lg uppercase">{drop.name}</h3>
+                  <p className="text-muted-foreground text-sm uppercase">
+                    {formatDate(drop.date)}
+                  </p>
                   <div className="hype-box text-xs">
                     coming soon
                   </div>
