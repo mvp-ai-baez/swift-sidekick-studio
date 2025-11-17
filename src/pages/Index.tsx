@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import baezLogo from '@/assets/baez-logo.jpg';
 
 const Index = () => {
   const currentTime = new Date().toLocaleString('en-US', {
@@ -16,8 +17,13 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-4">
         <div className="text-center space-y-8 max-w-2xl">
-          <div className="hype-box inline-block text-4xl md:text-6xl mb-4">
-            YOUR BRAND
+          <div className="mb-4">
+            <img 
+              src={baezLogo} 
+              alt="BAEZ" 
+              className="max-w-full h-auto mx-auto"
+              style={{ maxHeight: '200px' }}
+            />
           </div>
           
           <p className="text-sm uppercase tracking-wider text-muted-foreground">
